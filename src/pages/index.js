@@ -1,8 +1,6 @@
-// pages/index.js
 import { useState, useEffect } from 'react';
 import { debounce } from 'lodash';
 import styles from '../styles/style.module.css';
-import { useRouter } from 'next/router';
 
 export default function Home() {
   const [originalUrl, setOriginalUrl] = useState('');
@@ -12,8 +10,7 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
-  const router = useRouter();
-  const baseUrl = router.asPath || '';
+
 
   const getISODate = (timestamp) => {
     return new Date(timestamp).toISOString().replace(/:/g, '');
@@ -24,15 +21,19 @@ export default function Home() {
     const formattedDate = rawDate.toISOString().replace(/[^0-9]/g, '');
     return formattedDate;
   };
+  
+
 
   const fetchRecentUrls = async () => {
     try {
       const currentTimestamp = getISODate('2023-11-28 13:53:00.947793');
-      const response = await fetch(`/api/db?timestamp=${currentTimestamp}&page=${currentPage}&pageSize=${pageSize}`);
+      const response = await fetch(`${window.location.origin}/api/db?timestamp=${currentTimestamp}&page=${currentPage}&pageSize=${pageSize}`);
 
       if (response.ok) {
         const data = await response.json();
+        // Sort the data based on the timestamp in descending order
         const sortedData = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        // Slice the array to get only the latest 4 URLs
         const latestUrls = sortedData.slice(0, 4);
         setRecentUrls(latestUrls);
       } else {
@@ -43,9 +44,12 @@ export default function Home() {
     }
   };
 
+
+
+  // Debounce the handleShorten function
   const debouncedHandleShorten = debounce(async () => {
     try {
-      const response = await fetch('/api/shorten', {
+      const response = await fetch(`${window.location.origin}/api/shorten`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,6 +61,7 @@ export default function Home() {
         const { shortUrl } = await response.json();
         setShortUrl(shortUrl);
         setShowShortUrl(true);
+        // Fetch recent URLs immediately after shortening
         fetchRecentUrls();
       } else {
         console.error('Error shortening URL:', response.status, response.statusText);
@@ -64,17 +69,19 @@ export default function Home() {
     } catch (error) {
       console.error('An unexpected error occurred during fetch:', error);
     }
-  }, 300);
+  }, 300); // Debounce for 300 milliseconds
 
   useEffect(() => {
+    // Fetch recent URLs on initial load
     fetchRecentUrls();
 
+    // Fetch recent URLs every 4 seconds with pagination (example: page 1, pageSize 10)
     const intervalId = setInterval(() => {
-      setCurrentPage(1);
+      setCurrentPage(1); // Reset to the first page on each poll
       fetchRecentUrls();
-    }, 4000);
+    }, 4000); // Poll every 4 seconds
 
-    return () => clearInterval(intervalId);
+    return () => clearInterval(intervalId); // Cleanup on unmount
   }, []);
 
   return (
@@ -95,8 +102,8 @@ export default function Home() {
       {showShortUrl && shortUrl && (
         <div className={styles.resultContainer}>
           <p>Short URL:</p>
-          <a href={`${baseUrl}/api/redirect/${shortUrl}`} target="_blank" rel="noopener noreferrer" className={styles.shortUrlStyle}>
-            {`${baseUrl}/api/redirect/${shortUrl}`}
+          <a href={`${window.location.origin}/api/redirect/${shortUrl}`} target="_blank" rel="noopener noreferrer" className={styles.shortUrlStyle}>
+            {`https://punya.16/${shortUrl}`}
           </a>
         </div>
       )}
@@ -106,8 +113,8 @@ export default function Home() {
           {recentUrls.map((url) => (
             <li key={url.short_url}>
               Guest_{getFormattedDate(url.created_at)}: 
-              <a href={`${baseUrl}/api/redirect/${url.short_url}`} target="_blank" rel="noopener noreferrer">
-                {`   ${baseUrl}/api/redirect/${url.short_url}`}
+              <a href={`${window.location.origin}/api/redirect/${url.short_url}`} target="_blank" rel="noopener noreferrer">
+                {`   https://punya.16/${url.short_url}`}
               </a>
             </li>
           ))}
