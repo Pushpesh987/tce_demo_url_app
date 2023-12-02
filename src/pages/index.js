@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { debounce } from 'lodash';
 import styles from '../styles/style.module.css';
 
 export default function Home() {
@@ -6,15 +7,28 @@ export default function Home() {
   const [shortUrl, setShortUrl] = useState('');
   const [showShortUrl, setShowShortUrl] = useState(false);
   const [recentUrls, setRecentUrls] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+
+
+  const getISODate = (timestamp) => {
+    return new Date(timestamp).toISOString().replace(/:/g, '');
+  };
+
 
   const fetchRecentUrls = async () => {
     try {
-      const timestamp = new Date().toISOString();
-      const response = await fetch(`/api/db?timestamp=${timestamp}`);
-      
+      const currentTimestamp = getISODate('2023-11-28 13:53:00.947793');
+      const response = await fetch(`/api/db?timestamp=${currentTimestamp}&page=${currentPage}&pageSize=${pageSize}`);
+
       if (response.ok) {
         const data = await response.json();
-        setRecentUrls(data);
+        // Sort the data based on the timestamp in descending order
+        const sortedData = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        // Slice the array to get only the latest 4 URLs
+        const latestUrls = sortedData.slice(0, 4);
+        setRecentUrls(latestUrls);
       } else {
         console.error('Error fetching recent URLs:', response.status, response.statusText);
       }
@@ -22,17 +36,11 @@ export default function Home() {
       console.error('An unexpected error occurred during fetch:', error);
     }
   };
-  
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      fetchRecentUrls();
-    }, 1); // Poll every millisecond
 
-    return () => clearInterval(intervalId); // Cleanup on unmount
-  }, []);
 
-  const handleShorten = async () => {
+  // Debounce the handleShorten function
+  const debouncedHandleShorten = debounce(async () => {
     try {
       const response = await fetch('/api/shorten', {
         method: 'POST',
@@ -41,19 +49,33 @@ export default function Home() {
         },
         body: JSON.stringify({ originalUrl }),
       });
-  
+
       if (response.ok) {
         const { shortUrl } = await response.json();
         setShortUrl(shortUrl);
         setShowShortUrl(true);
+        // Fetch recent URLs immediately after shortening
+        fetchRecentUrls();
       } else {
         console.error('Error shortening URL:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('An unexpected error occurred during fetch:', error);
     }
-  };
-  
+  }, 300); // Debounce for 300 milliseconds
+
+  useEffect(() => {
+    // Fetch recent URLs on initial load
+    fetchRecentUrls();
+
+    // Fetch recent URLs every 4 seconds with pagination (example: page 1, pageSize 10)
+    const intervalId = setInterval(() => {
+      setCurrentPage(1); // Reset to the first page on each poll
+      fetchRecentUrls();
+    }, 4000); // Poll every 4 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -66,7 +88,7 @@ export default function Home() {
           className={styles.inputStyle}
           placeholder="Enter your URL"
         />
-        <button onClick={handleShorten} className={styles.buttonStyle}>
+        <button onClick={debouncedHandleShorten} className={styles.buttonStyle}>
           Shorten URL
         </button>
       </div>
@@ -78,13 +100,14 @@ export default function Home() {
           </a>
         </div>
       )}
+      {/* ... */}
       <div className={styles.recentUrlsContainer}>
         <h3>Recent URLs</h3>
         <ul>
           {recentUrls.map((url) => (
             <li key={url.short_url}>
               <a href={`http://localhost:3000/api/redirect/${url.short_url}`} target="_blank" rel="noopener noreferrer">
-                {`https://punya.16/${url.short_url}`}
+                {`Guest_${getISODate(url.created_at)}: https://punya.16/${url.short_url}`}
               </a>
             </li>
           ))}
