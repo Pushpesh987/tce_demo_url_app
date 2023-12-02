@@ -103,7 +103,7 @@ export default function Home() {
         <div className={styles.resultContainer}>
           <p>Short URL:</p>
           <a href={`${window.location.origin}/api/redirect/${shortUrl}`} target="_blank" rel="noopener noreferrer" className={styles.shortUrlStyle}>
-            {`https://punya.16/${shortUrl}`}
+            {`https://ppk.13/${shortUrl}`}
           </a>
         </div>
       )}
@@ -114,7 +114,7 @@ export default function Home() {
             <li key={url.short_url}>
               Guest_{getFormattedDate(url.created_at)}: 
               <a href={`${window.location.origin}/api/redirect/${url.short_url}`} target="_blank" rel="noopener noreferrer">
-                {`   https://punya.16/${url.short_url}`}
+                {`   https://ppk.13/${url.short_url}`}
               </a>
             </li>
           ))}
