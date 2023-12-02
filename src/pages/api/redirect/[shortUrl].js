@@ -4,7 +4,6 @@ import { supabase } from '../../../lib/supabase';
 export default async function handler(req, res) {
   const { shortUrl } = req.query;
 
-  // Retrieve the original URL from the database using the short URL
   const { data, error } = await supabase
     .from('tce_ppk')
     .select('original_url')
@@ -15,10 +14,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error fetching data from the database' });
   }
 
-  // If the data is found, redirect; otherwise, return an error
   if (data) {
-    // For localhost, use a relative path to handle redirection
-    res.writeHead(301, { Location: data.original_url.replace('https://localhost:3000', '') });
+    const baseUrl = req.headers.host;
+    res.writeHead(301, { Location: data.original_url.replace(baseUrl, '') });
     res.end();
   } else {
     res.status(404).json({ error: 'Short URL not found' });

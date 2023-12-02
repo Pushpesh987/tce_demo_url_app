@@ -1,20 +1,17 @@
-// pages/api/shorten.js
+// pages/api/db.js
 import { supabase } from '../../lib/supabase';
 
 export default async function handler(req, res) {
-  const { originalUrl } = req.body;
+  const { timestamp } = req.query;
 
-  // Simple logic to generate a random short URL
-  const shortUrl = Math.random().toString(36).substr(2, 6);
-
-  // Save the data to the database
   const { data, error } = await supabase
     .from('tce_ppk')
-    .insert([{ original_url: originalUrl, short_url: shortUrl }]);
+    .select('*')
+    .gte('created_at', timestamp);
 
   if (error) {
-    return res.status(500).json({ error: 'Error saving data to the database' });
+    return res.status(500).json({ error: 'Error fetching data from the database' });
   }
 
-  res.status(200).json({ shortUrl });
+  res.status(200).json(data);
 }
