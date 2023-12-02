@@ -10,8 +10,6 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
-
-
   const getISODate = (timestamp) => {
     return new Date(timestamp).toISOString().replace(/:/g, '');
   };
@@ -21,8 +19,6 @@ export default function Home() {
     const formattedDate = rawDate.toISOString().replace(/[^0-9]/g, '');
     return formattedDate;
   };
-  
-
 
   const fetchRecentUrls = async () => {
     try {
@@ -31,9 +27,7 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json();
-        // Sort the data based on the timestamp in descending order
         const sortedData = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        // Slice the array to get only the latest 4 URLs
         const latestUrls = sortedData.slice(0, 4);
         setRecentUrls(latestUrls);
       } else {
@@ -44,9 +38,6 @@ export default function Home() {
     }
   };
 
-
-
-  // Debounce the handleShorten function
   const debouncedHandleShorten = debounce(async () => {
     try {
       const response = await fetch(`${window.location.origin}/api/shorten`, {
@@ -61,7 +52,6 @@ export default function Home() {
         const { shortUrl } = await response.json();
         setShortUrl(shortUrl);
         setShowShortUrl(true);
-        // Fetch recent URLs immediately after shortening
         fetchRecentUrls();
       } else {
         console.error('Error shortening URL:', response.status, response.statusText);
@@ -69,19 +59,17 @@ export default function Home() {
     } catch (error) {
       console.error('An unexpected error occurred during fetch:', error);
     }
-  }, 300); // Debounce for 300 milliseconds
+  }, 300);
 
   useEffect(() => {
-    // Fetch recent URLs on initial load
     fetchRecentUrls();
 
-    // Fetch recent URLs every 4 seconds with pagination (example: page 1, pageSize 10)
     const intervalId = setInterval(() => {
-      setCurrentPage(1); // Reset to the first page on each poll
+      setCurrentPage(1);
       fetchRecentUrls();
-    }, 4000); // Poll every 4 seconds
+    }, 4000);
 
-    return () => clearInterval(intervalId); // Cleanup on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
@@ -95,7 +83,11 @@ export default function Home() {
           className={styles.inputStyle}
           placeholder="Enter your URL"
         />
-        <button onClick={debouncedHandleShorten} className={styles.buttonStyle}>
+        <button
+          onClick={debouncedHandleShorten}
+          className={`${styles.buttonStyle} ${originalUrl ? '' : styles.disabledButtonStyle}`}
+          disabled={!originalUrl}
+        >
           Shorten URL
         </button>
       </div>
@@ -112,7 +104,7 @@ export default function Home() {
         <ul>
           {recentUrls.map((url) => (
             <li key={url.short_url}>
-              Guest_{getFormattedDate(url.created_at)}: 
+              Guest_{getFormattedDate(url.created_at)}:
               <a href={`${window.location.origin}/api/redirect/${url.short_url}`} target="_blank" rel="noopener noreferrer">
                 {`   https://ppk.13/${url.short_url}`}
               </a>
